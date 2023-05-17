@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Asset Correlation Tracker</title>
+    <title>Crypto Asset Correlationr</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -36,12 +36,17 @@
 </head>
 <body>
   <div class="container">
-    <h1>Crypto Asset Correlation Tracker</h1>
-    <p>Select two assets to view their historical correlation:</p>
+    <h1>Crypto Asset Correlation</h1>
+    <p>Select two assets to view their historical correlation for different correlation periods:</p>
     <select id="asset1"></select>
     <select id="asset2"></select>
-    <button onclick="updateChart()">Update Chart</button>
+    <button onclick="updateChart()">Click here to update chart</button>
+    <p style="padding-top: 2rem;">Or, select Bitcoin or Ethereum, and a correlation period, to see its correlation with the rest of the assets:</p>
+    <select id="asset3"></select>
+    <select id="timeHorizon"></select>
+    <button onclick="updateAllCorrelationsChart()">Click here to update chart</button>
 </div>
+
 
   <iframe id="chart" style="
     width: 100%;
@@ -49,75 +54,124 @@
 "></iframe>
 
 <p class="explanation">
-  This webpage tracks the historical correlation between different assets. I built this page, because it's difficult to find Bitcoin and Ethereum correlation charts on the internet. The correlations are calculated over several rolling time horizons. The charts are based on daily closing prices over the past five years. Correlation is a statistical measure that expresses the extent to which two variables move in relation to each other. If the two assets have a positive correlation, it means the prices of both assets tend to move in the same direction. Conversely, if the correlation is negative, the prices of the assets tend to move in opposite directions.
+  This webpage tracks the historical correlation between different assets. It uses the <a href="https://en.wikipedia.org/wiki/Pearson_correlation_coefficient">Pearson correlation coefficient</a>. I built this page because I would always get frustrated when trying to find Bitcoin and Ethereum correlation charts on the internet. The correlations are calculated over several rolling time horizons. The charts are based on daily closing prices over the past five years. Correlation is a statistical measure that expresses the extent to which two variables move in relation to each other. If the two assets have a positive correlation, it means the prices of both assets tend to move in the same direction. Conversely, if the correlation is negative, the prices of the assets tend to move in opposite directions.
 </p>
+
 
 <p class="explanation">
   This code is open source and can be found here: https://github.com/josusanmartin/correlations
 </p>
 
-  <script>
-    var displayNames;
-    var assets;
-    var dropdown1 = document.getElementById('asset1');
-    var dropdown2 = document.getElementById('asset2');
+<script>
+  var displayNames;
+  var assets;
+  var dropdown1 = document.getElementById('asset1');
+  var dropdown2 = document.getElementById('asset2');
+  var legend_names = {
+    "BTC-USD": "BTCUSD",
+    "ETH-USD": "ETHUSD",
+    "NDAQ": "NASDAQ",
+    "SPY": "S&P",
+    "GC=F": "GOLD",
+    "DX-Y.NYB": "DXY",
+    "EURUSD=X": "EURUSD"
+};
 
-    // Load assets and display names from JSON files
-    var xhr1 = new XMLHttpRequest();
-    xhr1.open('GET', 'json/display_names.json', false);
-    xhr1.onreadystatechange = function() {
-      if (xhr1.readyState === 4 && xhr1.status === 200) {
-        displayNames = JSON.parse(xhr1.responseText);
-      }
-    };
-    xhr1.send();
-
-    var xhr2 = new XMLHttpRequest();
-    xhr2.open('GET', 'json/name_to_symbol.json', false);
-    xhr2.onreadystatechange = function() {
-      if (xhr2.readyState === 4 && xhr2.status === 200) {
-        assets = JSON.parse(xhr2.responseText);
-      }
-    };
-    xhr2.send();
-
-    displayNames.forEach(function(name) {
-      dropdown1.options.add(new Option(name, name));
-      dropdown2.options.add(new Option(name, name));
-    });
-    dropdown2.selectedIndex = 1;  // Start with a different asset in the second dropdown
-
-    function updateChart() {
-      var asset1 = assets[dropdown1.value];
-      var asset2 = assets[dropdown2.value];
-      var correlationChartUrl = "html/" + asset1.replace('^', '_').replace('=', '_') + "_vs_" + asset2.replace('^', '_').replace('=', '_') + "_correlation.html";
-      var reversedCorrelationChartUrl = "html/" + asset2.replace('^', '_').replace('=', '_') + "_vs_" + asset1.replace('^', '_').replace('=', '_') + "_correlation.html";
-      if (doesChartExist(correlationChartUrl)) {
-        document.getElementById('chart').src = correlationChartUrl;
-      } else if (doesChartExist(reversedCorrelationChartUrl)) {
-        document.getElementById('chart').src = reversedCorrelationChartUrl;
-      }
+  // Load assets and display names from JSON files
+  var xhr1 = new XMLHttpRequest();
+  xhr1.open('GET', 'json/display_names.json', false);
+  xhr1.onreadystatechange = function() {
+    if (xhr1.readyState === 4 && xhr1.status === 200) {
+      displayNames = JSON.parse(xhr1.responseText);
     }
+  };
+  xhr1.send();
 
-    function doesChartExist(url) {
-      var http = new XMLHttpRequest();
-      http.open('HEAD', url, false);
-      http.send();
-      return http.status !== 404;
+  var xhr2 = new XMLHttpRequest();
+  xhr2.open('GET', 'json/name_to_symbol.json', false);
+  xhr2.onreadystatechange = function() {
+    if (xhr2.readyState === 4 && xhr2.status === 200) {
+      assets = JSON.parse(xhr2.responseText);
     }
+  };
+  xhr2.send();
 
-    updateChart();  // Display the initial chart
+  displayNames.forEach(function(name) {
+    dropdown1.options.add(new Option(legend_names[name], name));
+    dropdown2.options.add(new Option(legend_names[name], name));
+});
+  dropdown2.selectedIndex = 1;  // Start with a different asset in the second dropdown
 
-    dropdown1.addEventListener('change', function() {
-      if (this.value === dropdown2.value) {
-        dropdown2.selectedIndex = (this.selectedIndex + 1) % displayNames.length;
-      }
-    });
-    dropdown2.addEventListener('change', function() {
-      if (this.value === dropdown1.value) {
-        dropdown1.selectedIndex = (this.selectedIndex + 1) % displayNames.length;
-      }
-    });
+  function updateChart() {
+    var asset1 = assets[dropdown1.value];
+    var asset2 = assets[dropdown2.value];
+    var correlationChartUrl = "html/" + asset1.replace('^', '_').replace('=', '_') + "_vs_" + asset2.replace('^', '_').replace('=', '_') + "_correlation.html";
+    var reversedCorrelationChartUrl = "html/" + asset2.replace('^', '_').replace('=', '_') + "_vs_" + asset1.replace('^', '_').replace('=', '_') + "_correlation.html";
+    if (doesChartExist(correlationChartUrl)) {
+      document.getElementById('chart').src = correlationChartUrl;
+    } else if (doesChartExist(reversedCorrelationChartUrl)) {
+      document.getElementById('chart').src = reversedCorrelationChartUrl;
+    }
+  }
+
+  function doesChartExist(url) {
+    var http = new XMLHttpRequest();
+    http.open('HEAD', url, false);
+    http.send();
+    return http.status !== 404;
+  }
+
+  updateChart();  // Display the initial chart
+
+  dropdown1.addEventListener('change', function() {
+    if (this.value === dropdown2.value) {
+      dropdown2.selectedIndex = (this.selectedIndex + 1) % displayNames.length;
+    }
+  });
+  dropdown2.addEventListener('change', function() {
+    if (this.value === dropdown1.value) {
+      dropdown1.selectedIndex = (this.selectedIndex + 1) % displayNames.length;
+    }
+  });
+
+  // Added
+
+  var timeHorizons;
+  var dropdown3 = document.getElementById('asset3');
+  var timeHorizonDropdown = document.getElementById('timeHorizon');
+
+  // Load time horizons from JSON file
+  var xhr3 = new XMLHttpRequest();
+  xhr3.open('GET', 'json/time_horizons.json', false);
+  xhr3.onreadystatechange = function() {
+    if (xhr3.readyState === 4 && xhr3.status === 200) {
+      timeHorizons = JSON.parse(xhr3.responseText);
+    }
+  };
+  xhr3.send();
+
+
+
+  // Add only 'BTC-USD' and 'ETH-USD' to the dropdown3
+  ['BTC-USD', 'ETH-USD'].forEach(function(name) {
+    dropdown3.options.add(new Option(name, name
+    ));
+  });
+// Add '30 days', '60 days', '90 days', '1 year', '3 years' to the timeHorizonDropdown
+['30 days', '60 days', '90 days', '1 year', '3 years'].forEach(function(timeHorizon) {
+  timeHorizonDropdown.options.add(new Option(timeHorizon, timeHorizon));
+});
+
+function updateAllCorrelationsChart() {
+  var asset = assets[dropdown3.value].replace('-', '');
+  var timeHorizon = timeHorizonDropdown.value;
+  timeHorizon = timeHorizon === '1 year' ? '360' : timeHorizon === '3 years' ? '1095' : timeHorizon.replace(' days', '');
+  var allCorrelationsChartUrl = "html/" + asset + "_" + timeHorizon + "_correlation.html";
+  if (doesChartExist(allCorrelationsChartUrl)) {
+    document.getElementById('chart').src = allCorrelationsChartUrl;
+  }
+}
+    
   </script>
 </body>
 </html>
