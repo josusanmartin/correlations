@@ -1,28 +1,60 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Cross Correlation of Asset Prices</title>
-  <style>
-    iframe {
-      width: 100%;
-      height: 800px;
-      border: none;
-    }
-  </style>
+    <title>Asset Correlation Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        select {
+            padding: 10px;
+            width: 200px;
+            margin-right: 20px;
+        }
+
+        .explanation {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #666;
+            padding: 30px;
+        }
+    </style>
 </head>
 <body>
-  <h1>Cross Correlation of Asset Prices</h1>
-  <select id="asset1"></select>
-  <select id="asset2"></select>
-  <button onclick="updateChart()">Update</button>
-  <br>
+  <div class="container">
+    <h1>Crypto Asset Correlation Tracker</h1>
+    <p>Select two assets to view their historical correlation:</p>
+    <select id="asset1"></select>
+    <select id="asset2"></select>
+    <button onclick="updateChart()">Update Chart</button>
+</div>
 
   <iframe id="chart" style="
     width: 100%;
     height: 600px;
 "></iframe>
 
+<p class="explanation">
+  This webpage tracks the historical correlation between different assets. I built this page, because it's difficult to find Bitcoin and Ethereum correlation charts on the internet. The correlations are calculated over several rolling time horizons. The charts are based on daily closing prices over the past five years. Correlation is a statistical measure that expresses the extent to which two variables move in relation to each other. If the two assets have a positive correlation, it means the prices of both assets tend to move in the same direction. Conversely, if the correlation is negative, the prices of the assets tend to move in opposite directions.
+</p>
+
+<p class="explanation">
+  This code is open source and can be found here: https://github.com/josusanmartin/correlations
+</p>
 
   <script>
     var displayNames;
