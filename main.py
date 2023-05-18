@@ -4,6 +4,7 @@ import json
 import numpy as np
 from datetime import datetime, timedelta
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from plotly.offline import plot
 import os
 
@@ -24,7 +25,6 @@ def download_data(tickers, start_date, end_date):
 def cross_correlation(data, period):
     return data.pct_change().rolling(window=period).corr().dropna()
 
-# Function to plot cross correlation
 def plot_correlation(data, assets, time_horizons):
     time_horizons_names = {
         30: '30 days',
@@ -36,16 +36,35 @@ def plot_correlation(data, assets, time_horizons):
     }
     for i in range(len(assets)-1):
         for j in range(i+1, len(assets)):
-            fig = go.Figure()
+            fig = make_subplots(rows=2, cols=1, shared_xaxes=True, subplot_titles=('Correlation', 'Price'),
+                                specs=[[{}], [{"secondary_y": True}]], row_heights=[0.67, 0.33], vertical_spacing=0.05)
+
             for period in time_horizons:
                 corr_data = cross_correlation(data, period)
                 corr = corr_data[assets[i]].unstack()[assets[j]].dropna()
                 fig.add_trace(go.Scatter(x=corr.index, y=corr,
                                          mode='lines',
-                                         name=f'{time_horizons_names[period]}'))
+                                         name=f'{time_horizons_names[period]}',
+                                         showlegend=True), row=1, col=1)
+
+            fig.add_trace(go.Scatter(x=data.index, y=data[assets[i]],
+                                     mode='lines',
+                                     name=f'{legend_names[assets[i]]} Price',
+                                     showlegend=True), row=2, col=1)
+            fig.add_trace(go.Scatter(x=data.index, y=data[assets[j]],
+                                     mode='lines',
+                                     name=f'{legend_names[assets[j]]} Price',
+                                     showlegend=True), row=2, col=1, secondary_y=True)
+            
+            fig.update_yaxes(title_text=f"{legend_names[assets[i]]} Price", tickformat=",.0f",row=2, col=1)
+            fig.update_yaxes(title_text=f"{legend_names[assets[j]]}", tickformat=",.0f",row=2, col=1, secondary_y=True)
+
             fig.update_layout(title=f'Cross Correlation of {legend_names[assets[i]]} vs {legend_names[assets[j]]}',
                               xaxis_title='Date',
-                              yaxis_title='Correlation')
+                              yaxis_title='Correlation',
+                              yaxis2_title=f'{legend_names[assets[i]]}')
+                            #   legend=dict(orientation="h", yanchor="bottom", y=0.43, xanchor="right", x=0.8)
+        
             file_name = f"html/{assets[i].replace('^', '_').replace('=', '_')}_vs_{assets[j].replace('^', '_').replace('=', '_')}_correlation.html"
             plot(fig, filename = file_name, auto_open=False)
 
