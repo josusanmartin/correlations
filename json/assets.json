@@ -1,1 +1,9 @@
-["BTC-USD", "ETH-USD", "^IXIC", "^GSPC", "GC=F", "DX-Y.NYB", "EURUSD=X"]
+{
+  "BTC-USD": "BTCUSD",
+  "ETH-USD": "ETHUSD",
+  "^IXIC": "NASDAQ",
+  "^GSPC": "S&P",
+  "GC=F": "GOLD",
+  "DX-Y.NYB": "DXY",
+  "EURUSD=X": "EURUSD"
+}
