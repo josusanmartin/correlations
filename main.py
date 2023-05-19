@@ -126,7 +126,7 @@ with open('json/time_horizons.json', 'w') as file:
     json.dump(time_horizons, file)
 
 # Download historical price data
-start_date = (datetime.now() - timedelta(days=10*365)).strftime('%Y-%m-%d')  # 5 years
+start_date = (datetime.now() - timedelta(days=5*365)).strftime('%Y-%m-%d')  # 10 years
 end_date = datetime.now().strftime('%Y-%m-%d')
 data = download_data(list(assets.keys()), start_date, end_date)
 
