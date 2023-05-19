@@ -16,7 +16,17 @@ assets = {
     "^GSPC": "S&P",
     "GC=F": "GOLD",
     "DX-Y.NYB": "DXY",
-    "EURUSD=X": "EURUSD"
+    "EURUSD=X": "EURUSD",
+    "NVDA": "NVIDIA",
+    "TSLA": "TESLA",
+    "BRK-B": "BERKSHIRE",
+    "GME": "GAMESTOP",
+    "GOOG": "ALPHABET",
+    "AMZN": "AMAZON",
+    "AAPL": "APPLE",
+    "MSFT": "MICROSOFT",
+    "META": "META",
+    "NFLX": "NETFLIX",
 }
 
 # Define time horizons for the correlation. Number of days, and display name.
@@ -116,7 +126,7 @@ with open('json/time_horizons.json', 'w') as file:
     json.dump(time_horizons, file)
 
 # Download historical price data
-start_date = (datetime.now() - timedelta(days=5*365)).strftime('%Y-%m-%d')  # 5 years
+start_date = (datetime.now() - timedelta(days=10*365)).strftime('%Y-%m-%d')  # 5 years
 end_date = datetime.now().strftime('%Y-%m-%d')
 data = download_data(list(assets.keys()), start_date, end_date)
 
