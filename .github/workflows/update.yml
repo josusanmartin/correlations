@@ -2,7 +2,8 @@ name: Update Site
 
 on:
   schedule:
-    - cron:  '0 0 * * *'  # this means the action will run daily at midnight
+    - cron: '*/5 * * * *'
+   # - cron:  '0 0 * * *'  # this means the action will run daily at midnight
 
 jobs:
   build:
