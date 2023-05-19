@@ -3,8 +3,8 @@ run-name: Update Site
 on:
   schedule:
    # Run every 15 minutes
-    - cron: '*/15 * * * *'
-   # - cron:  '0 0 * * *'  # this means the action will run daily at midnight
+   # - cron: '*/15 * * * *'
+    - cron:  '0 1 * * *'  # this means the action will run daily at midnight
 
 jobs:
   build:
@@ -24,19 +24,23 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         
-    - name: Pull changes
-      run: |
-        git config user.name github-actions
-        git config user.email github-actions@github.com
-        git pull origin main
-
     - name: Run script
       run: python main.py  
 
-    - name: Push changes
+    - name: Configure git
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
+
+    - name: Commit changes
+      run: |
         git add .
-        git commit -am "Site update"
-        git push
+        git commit -m "Site update"
+
+    - name: Pull latest changes
+      run: |
+        git pull origin main --rebase
+
+    - name: Push changes
+      run: |
+        git push origin main
