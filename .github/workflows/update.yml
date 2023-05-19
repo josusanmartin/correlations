@@ -17,19 +17,26 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.11'  # Replace '3.x' with the version of Python you are using
+        python-version: '3.11'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt  # Replace this with your actual dependencies
+        pip install -r requirements.txt
+        
+    - name: Pull changes
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git pull origin main
 
     - name: Run script
-      run: python main.py  # Replace this with your actual Python script
+      run: python main.py  
 
     - name: Push changes
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
+        git add .
         git commit -am "Site update"
         git push
