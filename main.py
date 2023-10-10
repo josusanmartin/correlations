@@ -18,6 +18,8 @@ assets = {
     "DX-Y.NYB": "DXY",
     "EURUSD=X": "EURUSD",
     "NVDA": "NVIDIA",
+    "MARA": "MARA",
+    "RIOT": "RIOT",
     "TSLA": "TESLA",
     "BRK-B": "BERKSHIRE",
     "GME": "GAMESTOP",
