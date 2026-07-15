@@ -86,9 +86,22 @@ def round_sig(x, figs=SIG_FIGS):
     return float(f"{x:.{figs}g}")
 
 
+def load_existing(path):
+    """Previously generated payload, if any (restored from CI cache)."""
+    if os.path.exists(path):
+        try:
+            with open(path) as f:
+                return json.load(f)
+        except Exception:  # noqa: BLE001
+            pass
+    return None
+
+
 def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     assets = load_assets()
+    out = os.path.join(DATA_DIR, "prices.json")
+    prev = load_existing(out)
 
     end = datetime.now()
     start = end - timedelta(days=YEARS_OF_HISTORY * 365)
@@ -102,7 +115,20 @@ def main():
         "prices": {t: [round_sig(v) for v in frame[t]] for t in present},
     }
 
-    out = os.path.join(DATA_DIR, "prices.json")
+    # Never regress: if this fetch is materially worse than the last good one
+    # (fewer assets or a much shorter history — typically a rate-limit / outage),
+    # keep the previous data so the live site never loses content.
+    if prev:
+        if len(present) < len(prev.get("assets", {})) or len(payload["dates"]) < len(prev.get("dates", [])) * 0.9:
+            print(
+                f"Fetch looks degraded ({len(present)} assets x {len(payload['dates'])} days vs "
+                f"cached {len(prev.get('assets', {}))} x {len(prev.get('dates', []))}). "
+                f"Keeping previous data."
+            )
+            return
+    elif len(present) == 0:
+        raise SystemExit("No data fetched and no cached data to fall back on.")
+
     with open(out, "w") as f:
         json.dump(payload, f, separators=(",", ":"))
     size_mb = os.path.getsize(out) / 1e6

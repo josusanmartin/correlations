@@ -41,6 +41,16 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # Restore the last good prices.json so a transient Yahoo outage/rate-limit
+      # never drops the site's data (generate.py refuses to overwrite it with a
+      # worse fetch). A fresh cache entry is saved at the end of every run.
+      - name: Restore data cache
+        uses: actions/cache@v4
+        with:
+          path: public/data
+          key: prices-${{ github.run_id }}
+          restore-keys: prices-
+
       - name: Generate data
         run: python generate.py
 
