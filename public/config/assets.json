@@ -1,0 +1,22 @@
+{
+  "BTC-USD": "BTCUSD",
+  "ETH-USD": "ETHUSD",
+  "^IXIC": "NASDAQ",
+  "^GSPC": "S&P",
+  "GC=F": "GOLD",
+  "DX-Y.NYB": "DXY",
+  "EURUSD=X": "EURUSD",
+  "NVDA": "NVIDIA",
+  "MARA": "MARA",
+  "RIOT": "RIOT",
+  "TSLA": "TESLA",
+  "BRK-B": "BERKSHIRE",
+  "GME": "GAMESTOP",
+  "GOOG": "ALPHABET",
+  "AMZN": "AMAZON",
+  "AAPL": "APPLE",
+  "MSFT": "MICROSOFT",
+  "META": "META",
+  "NFLX": "NETFLIX",
+  "MSTR": "STRATEGY"
+}

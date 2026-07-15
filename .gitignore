@@ -1,0 +1,13 @@
+# Generated data — a build artifact, produced by CI and deployed to Pages.
+# NEVER commit this: doing so is what bloated the old history to ~20 GB.
+public/data/
+
+# Python
+.venv/
+venv/
+myenv/
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store

@@ -1,0 +1,54 @@
+name: Build & Deploy
+
+# Regenerates the data and publishes the site to GitHub Pages.
+# The generated data is uploaded as a Pages artifact and is NEVER committed to
+# git — that is what keeps the repository small forever.
+
+on:
+  schedule:
+    - cron: '0 1 * * *'   # daily at 01:00 UTC
+  workflow_dispatch: {}    # manual "Run workflow" button
+  push:
+    branches: [main]       # redeploy on code changes
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deployment at a time; don't cancel an in-progress one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate data
+        run: python generate.py
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public   # index.html, css, js, config, CNAME, generated data
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4

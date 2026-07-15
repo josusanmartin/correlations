@@ -1,0 +1,4 @@
+# Direct dependencies only. Transitive ones are resolved by pip.
+yfinance>=0.2.59
+pandas>=2.2
+numpy>=2.2

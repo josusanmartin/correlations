@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Crypto Asset Correlation</title>
+  <meta name="description" content="Historical rolling correlation, beta and volatility between Bitcoin, Ethereum and other assets.">
+  <link rel="stylesheet" href="css/app.css">
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Crypto Asset Correlation</h1>
+
+    <div class="chart-type-group">
+      <button class="chart-type-btn active" data-chart="correlation">Correlation</button>
+      <button class="chart-type-btn" data-chart="correlation1all">Correlation (1 vs All)</button>
+      <button class="chart-type-btn" data-chart="beta">Beta</button>
+      <button class="chart-type-btn" data-chart="volatility">Volatility</button>
+    </div>
+
+    <div id="chartExplanation" class="explanation"></div>
+
+    <div id="correlationControls" data-controls="correlation">
+      <div class="controls-row">
+        <select id="asset1" aria-label="Asset 1"></select>
+        <select id="asset2" aria-label="Asset 2"></select>
+        <select id="corrTimeHorizon" aria-label="Period"></select>
+        <button data-action="update">Show Correlation</button>
+      </div>
+    </div>
+
+    <div id="correlation1allControls" data-controls="correlation1all" hidden>
+      <div class="controls-row">
+        <select id="oneAllAsset" aria-label="Asset">
+          <option value="BTC-USD">BTCUSD</option>
+          <option value="ETH-USD">ETHUSD</option>
+        </select>
+        <select id="oneAllTimeHorizon" aria-label="Period"></select>
+        <button data-action="update">Show 1 vs All</button>
+      </div>
+    </div>
+
+    <div id="betaControls" data-controls="beta" hidden>
+      <div class="controls-row">
+        <select id="betaAsset" aria-label="Asset"></select>
+        <select id="betaTimeHorizon" aria-label="Period"></select>
+        <button data-action="update">Show Beta</button>
+      </div>
+    </div>
+
+    <div id="volatilityControls" data-controls="volatility" hidden>
+      <div class="controls-row">
+        <select id="volTimeHorizon" aria-label="Period"></select>
+      </div>
+      <div id="volatilityAssetCheckboxes" class="asset-checkboxes"></div>
+    </div>
+  </div>
+
+  <div id="mainChart"></div>
+
+  <p class="prose">
+    This webpage tracks the historical correlation between different assets. It uses the
+    <a href="https://en.wikipedia.org/wiki/Pearson_correlation_coefficient">Pearson correlation coefficient</a>.
+    I built this page because I would always get frustrated when trying to find Bitcoin and Ethereum correlation
+    charts on the internet. The correlations are calculated over several rolling time horizons, based on daily
+    closing prices over the past five years. Correlation is a statistical measure that expresses the extent to
+    which two variables move in relation to each other. A positive correlation means the prices tend to move in
+    the same direction; a negative correlation means they tend to move in opposite directions.
+  </p>
+
+  <p class="prose">
+    This code is open source and can be found here:
+    <a href="https://github.com/josusanmartin/correlations">https://github.com/josusanmartin/correlations</a>
+  </p>
+</body>
+</html>
