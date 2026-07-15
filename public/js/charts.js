@@ -54,6 +54,22 @@ const Charts = (() => {
     return ticks;
   }
 
+  // Fit the y-axis to the data with ~10% headroom, or use an explicit yDomain.
+  // clampMin/clampMax cap the padded range at hard bounds (e.g. correlation to
+  // [-1,1], volatility to >= 0) so padding never runs past what's possible.
+  function yDomainFor(series, opts = {}) {
+    if (opts.yDomain) return opts.yDomain.slice();
+    let lo = Infinity, hi = -Infinity;
+    for (const s of series) for (const v of s.values) if (v != null) { if (v < lo) lo = v; if (v > hi) hi = v; }
+    if (!isFinite(lo)) return [0, 1];
+    const pad = ((hi - lo) || Math.abs(hi) || 1) * 0.1;
+    lo -= pad; hi += pad;
+    if (opts.clampMin != null) lo = Math.max(lo, opts.clampMin);
+    if (opts.clampMax != null) hi = Math.min(hi, opts.clampMax);
+    if (lo === hi) { lo -= 0.5; hi += 0.5; }
+    return [lo, hi];
+  }
+
   function formatMonth(dateStr) {
     const [y, m] = dateStr.split('-');
     return `${MONTHS[+m - 1]} '${y.slice(2)}`;
@@ -127,17 +143,8 @@ const Charts = (() => {
       const n = dates.length;
       if (n === 0) return;
 
-      // y-domain
-      let ymin, ymax;
-      if (this.data.yDomain) {
-        [ymin, ymax] = this.data.yDomain;
-      } else {
-        ymin = Infinity; ymax = -Infinity;
-        for (const s of series) for (const v of s.values) if (v != null) { if (v < ymin) ymin = v; if (v > ymax) ymax = v; }
-        if (!isFinite(ymin)) { ymin = 0; ymax = 1; }
-        const pad = (ymax - ymin) * 0.08 || 0.5;
-        ymin -= pad; ymax += pad;
-      }
+      // y-domain: fit to the data with headroom (or an explicit yDomain).
+      const [ymin, ymax] = yDomainFor(series, this.data);
       const xAt = (i) => p.left + (n === 1 ? p.w / 2 : (i / (n - 1)) * p.w);
       const yAt = (v) => p.top + p.h - ((v - ymin) / (ymax - ymin)) * p.h;
 
@@ -146,8 +153,14 @@ const Charts = (() => {
       const muted = cssVar('--muted');
       ctx.font = "11px 'IBM Plex Mono', monospace";
       ctx.textBaseline = 'middle';
-      const yFmt = this.data.yTickFormat || ((v) => v.toFixed(2));
-      for (const t of niceTicks(ymin, ymax, 5)) {
+      // Tick label precision adapts to the tick step, so a zoomed-in axis
+      // (e.g. correlation 0.85–0.95) doesn't collapse to repeated "0.9".
+      const ticks = niceTicks(ymin, ymax, 5);
+      const step = ticks.length > 1 ? Math.abs(ticks[1] - ticks[0]) : (Math.abs(ticks[0]) || 1);
+      const dec = Math.max(0, -Math.floor(Math.log10(step)));
+      const pct = this.data.yUnit === 'percent';
+      const yFmt = (v) => (pct ? (v * 100).toFixed(Math.max(0, dec - 2)) + '%' : v.toFixed(dec));
+      for (const t of ticks) {
         if (t < ymin || t > ymax) continue;
         const y = yAt(t);
         ctx.strokeStyle = grid; ctx.lineWidth = 1;
@@ -335,7 +348,7 @@ const Charts = (() => {
     destroy() { this._ro.disconnect(); }
   }
 
-  return { LineChart, Heatmap, makeDiverging };
+  return { LineChart, Heatmap, makeDiverging, yDomainFor };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = Charts;

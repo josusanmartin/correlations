@@ -183,7 +183,7 @@
     line.setData({
       dates: DATES,
       series: [{ name: `${NAMES[a]} · ${NAMES[b]}`, values, color: seriesColors()[0] }],
-      yDomain: [-1, 1], format: fmtCorr, yTickFormat: (v) => v.toFixed(1),
+      clampMin: -1, clampMax: 1, format: fmtCorr,
       refLines: [{ y: 0 }], legendEl: $('legend'),
     });
     setHero(
@@ -205,7 +205,7 @@
     line.setData({
       dates: DATES,
       series: series.map((s) => ({ name: NAMES[s.t], values: s.values, color: div(s.latest ?? 0) })),
-      yDomain: [-1, 1], format: fmtCorr, yTickFormat: (v) => v.toFixed(1),
+      clampMin: -1, clampMax: 1, format: fmtCorr,
       refLines: [{ y: 0 }], legendEl: $('legend'),
     });
     const top = series[0], bot = series[series.length - 1];
@@ -226,7 +226,7 @@
     line.setData({
       dates: DATES,
       series: [{ name: `${NAMES[a]} β vs ${NAMES[base]}`, values, color: seriesColors()[0] }],
-      format: fmtBeta, yTickFormat: fmtBeta, refLines: [{ y: 0 }, { y: 1 }], legendEl: $('legend'),
+      format: fmtBeta, refLines: [{ y: 0 }, { y: 1 }], legendEl: $('legend'),
     });
     setHero(
       `Beta vs ${NAMES[base]} · ${w}D`,
@@ -243,7 +243,7 @@
     const series = chosen.map((t, i) => ({
       name: NAMES[t], values: Metrics.rollingVolatility(RET[t], w), color: colors[i % colors.length],
     }));
-    line.setData({ dates: DATES, series, format: fmtPct, yTickFormat: fmtPct, legendEl: $('legend') });
+    line.setData({ dates: DATES, series, format: fmtPct, yUnit: 'percent', clampMin: 0, legendEl: $('legend') });
     let hiName = '—', hiVal = null;
     series.forEach((s) => { const v = Metrics.lastValue(s.values); if (v != null && (hiVal == null || v > hiVal)) { hiVal = v; hiName = s.name; } });
     setHero(
