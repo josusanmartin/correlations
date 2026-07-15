@@ -30,6 +30,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Guard against tracked data / large blobs
+        run: bash tools/check-no-data.sh
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'

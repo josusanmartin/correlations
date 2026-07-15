@@ -1,83 +1,117 @@
-# Asset Correlation Tracker
+# Correlate
 
-Visualise the historical relationship between crypto and traditional assets:
-rolling **correlation** (pairwise and one-vs-all), **beta** vs Bitcoin, and
-**volatility** — over rolling horizons of 30, 60, 90, 180 days, 1 year and 3
-years, based on ~5 years of daily closing prices.
+An asset-correlation terminal: rolling **correlation**, **beta** and
+**volatility** between Bitcoin, Ethereum and traditional assets — plus a full
+**correlation matrix** of every pair at a glance.
 
 Live site: <https://correlations.josusanmartin.com>
 
-## Architecture
+## The idea: ship prices once, compute in the browser
 
-This is a static site whose data is a **build artifact**, not source.
+The whole app runs off **one small file** — five years of daily closing prices
+(`public/data/prices.json`, ~230 KB). Every metric is derived client-side from
+those prices:
 
 ```
-public/                 # the entire published site (Pages artifact root)
+prices ──► daily returns ──► rolling correlation / beta / volatility / matrix
+```
+
+That single decision is what makes this leaner, faster and more capable than the
+old design, which pre-computed **214 JSON files (~600 MB)** on a server and
+fetched one per interaction:
+
+| | Old | New |
+|---|---|---|
+| Data files | 214 (~600 MB) | 1 (~230 KB) |
+| Per-interaction network | fetch a file each time | none — instant |
+| Charting | Plotly (~3.5 MB CDN) | custom canvas, no deps |
+| Window sizes | 6 fixed presets | any window, via a slider |
+| Correlation matrix | not possible | the flagship view |
+| Git history growth | ~0.5 GB/day (committed data) | none |
+
+## Views
+
+- **Matrix** — correlation heatmap of all assets over the chosen window; click a
+  cell to drill into that pair.
+- **Pair** — rolling correlation between any two assets.
+- **1 vs All** — one asset against every other, each line coloured by its current
+  correlation.
+- **Beta** — rolling beta of an asset against a selectable base (Bitcoin default).
+- **Volatility** — annualized volatility of any set of assets.
+
+State lives in the URL hash, so any view is shareable.
+
+## Layout
+
+```
+public/                 # the published site (Pages artifact root)
   index.html            # markup only
-  css/app.css           # styles
-  js/app.js             # all frontend logic (Plotly charts)
-  config/               # asset list + time horizons (source of truth)
-  data/                 # GENERATED, git-ignored, produced by generate.py
+  css/app.css           # design system (both themes)
+  js/metrics.js         # returns + rolling correlation/beta/volatility/matrix
+  js/charts.js          # canvas LineChart + Heatmap (no libraries)
+  js/app.js             # views, controls, hash routing, theming
+  config/assets.json    # ticker -> display name (generator input)
+  data/prices.json      # GENERATED, git-ignored
   CNAME
-generate.py             # downloads prices → writes public/data/*.json
-requirements.txt
+generate.py             # download prices -> public/data/prices.json
+tools/check-no-data.sh  # guard: fails if data/large blobs get tracked
 .github/workflows/deploy.yml
 ```
 
-**Why the repo used to be ~20 GB, and why it no longer is:** the old workflow ran
-`git add .` on ~600 regenerated MB of JSON and force-pushed it **every day**, so
-every run buried another ~0.5 GB of blobs in git history. Now the data is never
-committed — the CI job regenerates it and publishes it straight to GitHub Pages
-as a deployment artifact (`actions/upload-pages-artifact` → `deploy-pages`). Git
-history stays tiny forever.
+## Why the repo used to be ~20 GB — and won't be again
 
-## Data contract
+The old workflow ran `git add .` on ~600 MB of regenerated JSON and force-pushed
+it **every day**, burying ~0.5 GB of blobs in history per run. Now:
 
-`generate.py` writes exactly the files `js/app.js` fetches:
+1. `public/data/` is **git-ignored** — generated data is never a source file.
+2. CI regenerates it and publishes it **straight to GitHub Pages as a deployment
+   artifact** (`upload-pages-artifact` → `deploy-pages`), so nothing large ever
+   enters git.
+3. `tools/check-no-data.sh` runs in CI (and can be a local pre-commit hook) and
+   **fails the build** if any data file or >1 MB blob is ever tracked.
 
-| View                | File                                      | Shape |
-|---------------------|-------------------------------------------|-------|
-| Correlation (pair)  | `data/{a}_vs_{b}.json`                     | `{correlations: {"<horizon>": {dates, correlation}}}` |
-| Correlation (1→all) | `data/{asset}_{days}_correlations.json`   | `{asset, period, correlations: {"<name>": {dates, correlation}}}` |
-| Beta vs BTC         | `data/beta_BTC-USD_{days}.json`           | `{"<ticker>": {dates, beta}}` |
-| Volatility          | `data/volatility_{days}.json`             | `{"<ticker>": {dates, volatility}}` |
+Enable the guard locally:
 
-Pair filenames are canonical (assets ordered by their position in
-`config/assets.json`); the frontend sorts the same way, so either dropdown order
-resolves to the same file.
+```bash
+git config core.hooksPath tools/hooks
+```
 
 ## Local development
 
 ```bash
 pip install -r requirements.txt
-python generate.py          # writes public/data/ (needs network for yfinance)
+python generate.py                 # writes public/data/prices.json (needs network)
 python -m http.server -d public 8000
 # open http://localhost:8000
 ```
 
-To add or rename assets, edit `public/config/assets.json`; to change horizons,
-edit `public/config/time_horizons.json`. Both the generator and frontend read
-these, so no code changes are needed.
+Add or rename assets by editing `public/config/assets.json` — the generator and
+the frontend both read it; no code changes needed.
+
+## Methodology
+
+Prices are adjusted closes aligned to a shared **business-day** calendar over the
+last five years, so crypto and equities are compared on the same trading days.
+Windows are measured in **trading days**. Correlation is the Pearson coefficient
+of daily returns over the rolling window; beta is `cov(asset, base)/var(base)`;
+volatility is the sample standard deviation of daily returns, annualized by
+√252. These match a pandas reference implementation to ~1e-15.
 
 ## One-time cleanup of the bloated remote
 
 The refactor stops *new* bloat, but the existing 20 GB is still in remote
-history. Because all of it is regenerable data, the history has no value —
-replace it with a single clean commit:
+history. Since all of it is regenerable data, replace the history with a single
+clean commit:
 
 ```bash
-# from a fresh checkout of this refactored tree
 git checkout --orphan clean
 git add -A
-git commit -m "Refactor: data as build artifact, deploy via Pages"
-git branch -D main
-git branch -m main
+git commit -m "Refactor: prices-only data, in-browser metrics, Pages deploy"
+git branch -D main && git branch -m main
 git push -f origin main
-git gc --aggressive --prune=now   # optional: shrink your local copy
 ```
 
-After pushing, in the repo's **Settings → Pages**, set the source to
-**GitHub Actions** (not "Deploy from a branch").
+Then in **Settings → Pages**, set the source to **GitHub Actions**.
 
 ## License
 

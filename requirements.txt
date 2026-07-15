@@ -1,4 +1,3 @@
-# Direct dependencies only. Transitive ones are resolved by pip.
+# Data generation only. The site itself has zero runtime dependencies.
 yfinance>=0.2.59
 pandas>=2.2
-numpy>=2.2

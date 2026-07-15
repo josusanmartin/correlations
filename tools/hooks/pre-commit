@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Enable with:  git config core.hooksPath tools/hooks
+exec bash "$(git rev-parse --show-toplevel)/tools/check-no-data.sh"
