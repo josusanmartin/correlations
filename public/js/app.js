@@ -7,8 +7,10 @@
 
   const WINDOWS = [
     { w: 30, label: '30D' }, { w: 60, label: '60D' }, { w: 90, label: '90D' },
-    { w: 180, label: '180D' }, { w: 252, label: '1Y' }, { w: 756, label: '3Y' },
+    { w: 180, label: '180D' }, { w: 252, label: '1Y' }, { w: 504, label: '2Y' },
+    { w: 756, label: '3Y' }, { w: 1260, label: '5Y' },
   ];
+  const WINDOW_MAX = 1260;
 
   const state = {
     view: 'matrix',
@@ -277,7 +279,7 @@
     if (!['matrix', 'pair', 'oneall', 'beta', 'volatility'].includes(view)) return false;
     const q = Object.fromEntries(new URLSearchParams(query));
     const ok = (t) => TICKERS.includes(t);
-    if (q.w) state.window = Math.max(20, Math.min(756, +q.w || 90));
+    if (q.w) state.window = Math.max(20, Math.min(WINDOW_MAX, +q.w || 90));
     if (view === 'pair' && ok(q.a) && ok(q.b)) state.pair = { a: q.a, b: q.b };
     if (view === 'oneall' && ok(q.a)) state.one = { a: q.a };
     if (view === 'beta' && ok(q.base) && ok(q.a)) state.beta = { base: q.base, a: q.a };

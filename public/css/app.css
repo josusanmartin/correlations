@@ -215,7 +215,7 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
 }
 .chart-host { position: relative; width: 100%; }
 #lineHost { height: 460px; }
-#heatHost { height: min(72vw, 620px); }
+#heatHost { height: min(82vw, 680px); }
 .chart-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 
 .scale-legend { display: flex; align-items: center; gap: 10px; justify-content: center; padding: 14px 0 2px; color: var(--muted); font-size: 0.72rem; letter-spacing: 0.08em; }

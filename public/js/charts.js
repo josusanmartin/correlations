@@ -195,11 +195,13 @@ const Charts = (() => {
         ctx.setLineDash([]);
       }
 
-      // x labels (~6), sampled across the visible range
-      ctx.fillStyle = muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-      const xTickCount = Math.min(6, span + 1);
+      // x labels: count scales with width; the first/last labels are anchored
+      // inward (left/right) so they never clip at the canvas edges.
+      ctx.fillStyle = muted; ctx.textBaseline = 'top';
+      const xTickCount = Math.max(2, Math.min(6, Math.floor(p.w / 90), span + 1));
       for (let k = 0; k < xTickCount; k++) {
-        const i = i0 + Math.round((k / Math.max(1, xTickCount - 1)) * span);
+        const i = i0 + Math.round((k / (xTickCount - 1)) * span);
+        ctx.textAlign = k === 0 ? 'left' : k === xTickCount - 1 ? 'right' : 'center';
         ctx.fillText(formatMonth(dates[i]), xAt(i), p.top + p.h + 8);
       }
 
@@ -299,10 +301,14 @@ const Charts = (() => {
       const gridW = w - pad.left - pad.right;
       const gridH = h - pad.top - pad.bottom;
       const cell = Math.min(gridW, gridH) / nn;
+      const size = cell * nn;
+      // Center the square matrix so it isn't stranded to one side on a wide canvas.
+      const ox = pad.left + Math.max(0, (gridW - size) / 2);
+      const oy = pad.top + Math.max(0, (gridH - size) / 2);
       const color = makeDiverging();
 
-      const cellX = (j) => pad.left + j * cell;
-      const cellY = (i) => pad.top + i * cell;
+      const cellX = (j) => ox + j * cell;
+      const cellY = (i) => oy + i * cell;
 
       ctx.font = "10px 'IBM Plex Mono', monospace";
       // cells
@@ -324,12 +330,12 @@ const Charts = (() => {
       ctx.textBaseline = 'middle';
       for (let i = 0; i < nn; i++) {
         ctx.textAlign = 'right';
-        ctx.fillText(labels[i], pad.left - 8, cellY(i) + cell / 2);
+        ctx.fillText(labels[i], ox - 8, cellY(i) + cell / 2);
       }
       ctx.save();
       for (let j = 0; j < nn; j++) {
         ctx.save();
-        ctx.translate(cellX(j) + cell / 2, pad.top - 8);
+        ctx.translate(cellX(j) + cell / 2, oy - 8);
         ctx.rotate(-Math.PI / 4);
         ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
         ctx.fillText(labels[j], 0, 0);
@@ -337,15 +343,15 @@ const Charts = (() => {
       }
       ctx.restore();
 
-      this._geo = { pad, cell, nn };
+      this._geo = { ox, oy, cell, nn };
     }
 
     _move(e) {
       if (!this.data || !this._geo) return;
       const rect = this.canvas.getBoundingClientRect();
-      const { pad, cell, nn } = this._geo;
-      const j = Math.floor((e.clientX - rect.left - pad.left) / cell);
-      const i = Math.floor((e.clientY - rect.top - pad.top) / cell);
+      const { ox, oy, cell, nn } = this._geo;
+      const j = Math.floor((e.clientX - rect.left - ox) / cell);
+      const i = Math.floor((e.clientY - rect.top - oy) / cell);
       if (i < 0 || j < 0 || i >= nn || j >= nn) {
         this.hoverCell = null; this.tooltip.style.display = 'none'; this.render(); return;
       }
@@ -357,9 +363,9 @@ const Charts = (() => {
         `<div class="tt-big" style="color:${makeDiverging()(v)}">${v == null ? '—' : v.toFixed(2)}</div>`;
       this.tooltip.style.display = 'block';
       const tw = this.tooltip.offsetWidth;
-      const cx = pad.left + j * cell + cell;
+      const cx = ox + j * cell + cell;
       this.tooltip.style.left = `${Math.min(rect.width - tw - 4, cx + 8)}px`;
-      this.tooltip.style.top = `${pad.top + i * cell}px`;
+      this.tooltip.style.top = `${oy + i * cell}px`;
     }
 
     destroy() { this._ro.disconnect(); }
