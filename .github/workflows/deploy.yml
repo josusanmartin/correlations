@@ -54,6 +54,15 @@ jobs:
       - name: Generate data
         run: python generate.py
 
+      # Cache-bust JS/CSS: Pages serves them with a 4h cache, but index.html with
+      # a 10min cache. Stamping asset URLs with the commit SHA means a code fix
+      # goes live within ~10min instead of being stuck behind the 4h asset cache.
+      - name: Version asset URLs
+        run: |
+          v="${GITHUB_SHA::8}"
+          sed -i -E "s#(href=\"css/app\.css)\"#\1?v=$v\"#; s#(src=\"js/[a-z]+\.js)\"#\1?v=$v\"#g" public/index.html
+          grep -oE '(href|src)="(css|js)/[^"]+"' public/index.html
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
