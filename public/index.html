@@ -53,12 +53,13 @@
       <div class="field" data-controls="beta"><label for="betaBase">Base</label><select id="betaBase"></select></div>
       <div class="field" data-controls="beta"><label for="betaAsset">Asset</label><select id="betaAsset"></select></div>
 
-      <!-- shared window control (all views) -->
+      <!-- correlation horizon = the rolling window each point is measured over -->
       <div class="field window-field">
-        <label>Window · <span class="wval" style="display:inline"><b id="wlabel">90</b> trading days</span></label>
+        <label>Correlation horizon <span class="wval">· <b id="wlabel">90</b> trading days</span></label>
+        <div class="hint">how far back each point looks — a 90-day point is the correlation over the prior 90 days</div>
         <div class="chip-row" id="wchips"></div>
         <div class="slider-row">
-          <input type="range" id="wslider" min="20" max="1260" value="90" step="1">
+          <input type="range" id="wslider" min="20" max="1260" value="90" step="1" aria-label="Correlation horizon">
         </div>
       </div>
     </section>
@@ -75,6 +76,12 @@
         <span>−1 inverse</span><span class="scale-bar"></span><span>+1 lockstep</span>
       </div>
     </section>
+
+    <!-- time range = how much history the chart shows (independent of horizon) -->
+    <div class="range-bar" data-controls="pair oneall beta volatility">
+      <span class="range-label">Time range shown</span>
+      <div class="chip-row" id="rchips"></div>
+    </div>
 
     <section class="methodology">
       <h2>How this works</h2>

@@ -5,6 +5,7 @@
 (() => {
   'use strict';
 
+  // Correlation HORIZON = the rolling window each point is measured over.
   const WINDOWS = [
     { w: 30, label: '30D' }, { w: 60, label: '60D' }, { w: 90, label: '90D' },
     { w: 180, label: '180D' }, { w: 252, label: '1Y' }, { w: 504, label: '2Y' },
@@ -12,9 +13,20 @@
   ];
   const WINDOW_MAX = 1260;
 
+  // TIME RANGE = how much history the chart shows on its x-axis (independent of
+  // the horizon). `years: null` means show everything available.
+  const RANGES = [
+    { label: '1Y', years: 1 }, { label: '3Y', years: 3 }, { label: '5Y', years: 5 },
+    { label: '10Y', years: 10 }, { label: 'Max', years: null },
+  ];
+
+  const HORIZON_WORDS = { 30: '30-day', 60: '60-day', 90: '90-day', 180: '180-day', 252: '1-year', 504: '2-year', 756: '3-year', 1260: '5-year' };
+  const horizonPhrase = (w) => HORIZON_WORDS[w] || `${w}-day`;
+
   const state = {
     view: 'matrix',
-    window: 90,
+    window: 90,     // correlation horizon (trading days)
+    range: null,    // time range shown (years); null = Max
     pair: { a: null, b: null },
     one: { a: null },
     beta: { base: null, a: null },
@@ -79,6 +91,16 @@
       chips.appendChild(b);
     });
 
+    const rchips = $('rchips');
+    rchips.innerHTML = '';
+    RANGES.forEach(({ label, years }) => {
+      const b = document.createElement('button');
+      b.className = 'wchip'; b.textContent = label;
+      b.dataset.years = years == null ? '' : years;
+      b.addEventListener('click', () => setRange(years));
+      rchips.appendChild(b);
+    });
+
     const vc = $('volChecks');
     vc.innerHTML = '';
     TICKERS.forEach((t) => {
@@ -93,6 +115,7 @@
       vc.appendChild(lab);
     });
     syncWindowUI();
+    syncRangeUI();
   }
 
   function syncWindowUI() {
@@ -102,6 +125,38 @@
   }
 
   function setWindow(w) { state.window = w; syncWindowUI(); render(); }
+
+  function syncRangeUI() {
+    document.querySelectorAll('#rchips .wchip').forEach((c) => {
+      const y = c.dataset.years === '' ? null : +c.dataset.years;
+      c.classList.toggle('active', y === state.range);
+    });
+  }
+
+  function setRange(years) { state.range = years; syncRangeUI(); render(); }
+
+  // Index of the first visible date given the selected time range (0 = show all).
+  function rangeStartIndex() {
+    if (state.range == null) return 0;
+    const last = DATES[DATES.length - 1];
+    const cutoff = (parseInt(last.slice(0, 4), 10) - state.range) + last.slice(4);
+    for (let i = 0; i < DATES.length; i++) if (DATES[i] >= cutoff) return i;
+    return 0;
+  }
+
+  // Slice a line-chart config to the selected time range before drawing.
+  // (Metrics are computed over the full history so the rolling lookback is intact;
+  //  we only trim what's shown.)
+  function setLine(config) {
+    const start = rangeStartIndex();
+    if (start > 0) {
+      config = Object.assign({}, config, {
+        dates: config.dates.slice(start),
+        series: config.series.map((s) => Object.assign({}, s, { values: s.values.slice(start) })),
+      });
+    }
+    line.setData(config);
+  }
 
   // --------------------------------------------------------------- view logic
   function setView(v) {
@@ -166,7 +221,7 @@
     const openPair = (i, j) => { state.pair = { a: TICKERS[i], b: TICKERS[j] }; syncPairSelects(); setView('pair'); };
     heat.setData({ labels: TICKERS.map((t) => NAMES[t]), matrix: m, onSelect: openPair });
     setHero(
-      `Strongest pair · ${w}D`,
+      `Strongest pair · ${horizonPhrase(w)} correlation`,
       fmtCorr(best.v), best.v >= 0 ? 'pos' : 'neg',
       `${NAMES[TICKERS[best.i]]} and ${NAMES[TICKERS[best.j]]} — click any cell to inspect`,
       [
@@ -182,16 +237,16 @@
     const latest = Metrics.lastValue(values);
     let lo = Infinity, hi = -Infinity, s = 0, n = 0;
     for (const v of values) if (v != null) { lo = Math.min(lo, v); hi = Math.max(hi, v); s += v; n++; }
-    line.setData({
+    setLine({
       dates: DATES,
       series: [{ name: `${NAMES[a]} · ${NAMES[b]}`, values, color: seriesColors()[0] }],
       clampMin: -1, clampMax: 1, format: fmtCorr,
       refLines: [{ y: 0 }], legendEl: $('legend'),
     });
     setHero(
-      `Correlation · ${w}D`,
+      `${horizonPhrase(w)} rolling correlation`,
       latest == null ? '—' : fmtCorr(latest), latest >= 0 ? 'pos' : 'neg',
-      `${NAMES[a]} vs ${NAMES[b]} — rolling correlation`,
+      `${NAMES[a]} vs ${NAMES[b]}`,
       n ? [{ k: 'Low', v: fmtCorr(lo) }, { k: 'High', v: fmtCorr(hi) }, { k: 'Mean', v: fmtCorr(s / n) }] : []
     );
   }
@@ -204,7 +259,7 @@
       const values = Metrics.rollingCorrelation(RET[a], RET[t], w);
       return { t, values, latest: Metrics.lastValue(values) };
     }).sort((x, y) => (y.latest ?? -2) - (x.latest ?? -2));
-    line.setData({
+    setLine({
       dates: DATES,
       series: series.map((s) => ({ name: NAMES[s.t], values: s.values, color: div(s.latest ?? 0) })),
       clampMin: -1, clampMax: 1, format: fmtCorr,
@@ -212,7 +267,7 @@
     });
     const top = series[0], bot = series[series.length - 1];
     setHero(
-      `${NAMES[a]} vs all · ${w}D`,
+      `${NAMES[a]} vs all · ${horizonPhrase(w)}`,
       top.latest == null ? '—' : fmtCorr(top.latest), (top.latest ?? 0) >= 0 ? 'pos' : 'neg',
       `Strongest correlate right now: ${NAMES[top.t]}`,
       [{ k: 'Most inverse', v: `${NAMES[bot.t]} ${bot.latest == null ? '' : fmtCorr(bot.latest)}` }]
@@ -225,13 +280,13 @@
     const latest = Metrics.lastValue(values);
     let lo = Infinity, hi = -Infinity, s = 0, n = 0;
     for (const v of values) if (v != null) { lo = Math.min(lo, v); hi = Math.max(hi, v); s += v; n++; }
-    line.setData({
+    setLine({
       dates: DATES,
       series: [{ name: `${NAMES[a]} β vs ${NAMES[base]}`, values, color: seriesColors()[0] }],
       format: fmtBeta, refLines: [{ y: 0 }, { y: 1 }], legendEl: $('legend'),
     });
     setHero(
-      `Beta vs ${NAMES[base]} · ${w}D`,
+      `${horizonPhrase(w)} rolling beta vs ${NAMES[base]}`,
       latest == null ? '—' : fmtBeta(latest), null,
       `${NAMES[a]} sensitivity to ${NAMES[base]}`,
       n ? [{ k: 'Low', v: fmtBeta(lo) }, { k: 'High', v: fmtBeta(hi) }, { k: 'Mean', v: fmtBeta(s / n) }] : []
@@ -245,11 +300,11 @@
     const series = chosen.map((t, i) => ({
       name: NAMES[t], values: Metrics.rollingVolatility(RET[t], w), color: colors[i % colors.length],
     }));
-    line.setData({ dates: DATES, series, format: fmtPct, yUnit: 'percent', clampMin: 0, legendEl: $('legend') });
+    setLine({ dates: DATES, series, format: fmtPct, yUnit: 'percent', clampMin: 0, legendEl: $('legend') });
     let hiName = '—', hiVal = null;
     series.forEach((s) => { const v = Metrics.lastValue(s.values); if (v != null && (hiVal == null || v > hiVal)) { hiVal = v; hiName = s.name; } });
     setHero(
-      `Volatility · ${w}D`,
+      `${horizonPhrase(w)} rolling volatility`,
       hiVal == null ? '—' : fmtPct(hiVal), null,
       chosen.length ? `Highest right now: ${hiName} (annualized)` : 'Select assets below',
       []
@@ -261,11 +316,12 @@
   // -------------------------------------------------------------- hash routing
   function updateHash() {
     const w = state.window;
+    const r = state.range == null ? 'max' : state.range;
     let h;
-    if (state.view === 'pair') h = `pair?a=${state.pair.a}&b=${state.pair.b}&w=${w}`;
-    else if (state.view === 'oneall') h = `oneall?a=${state.one.a}&w=${w}`;
-    else if (state.view === 'beta') h = `beta?base=${state.beta.base}&a=${state.beta.a}&w=${w}`;
-    else if (state.view === 'volatility') h = `volatility?a=${[...state.vol].join(',')}&w=${w}`;
+    if (state.view === 'pair') h = `pair?a=${state.pair.a}&b=${state.pair.b}&w=${w}&r=${r}`;
+    else if (state.view === 'oneall') h = `oneall?a=${state.one.a}&w=${w}&r=${r}`;
+    else if (state.view === 'beta') h = `beta?base=${state.beta.base}&a=${state.beta.a}&w=${w}&r=${r}`;
+    else if (state.view === 'volatility') h = `volatility?a=${[...state.vol].join(',')}&w=${w}&r=${r}`;
     else h = `matrix?w=${w}`;
     applyingHash = true;
     history.replaceState(null, '', '#' + h);
@@ -280,6 +336,7 @@
     const q = Object.fromEntries(new URLSearchParams(query));
     const ok = (t) => TICKERS.includes(t);
     if (q.w) state.window = Math.max(20, Math.min(WINDOW_MAX, +q.w || 90));
+    if (q.r) state.range = q.r === 'max' ? null : (RANGES.some((x) => x.years === +q.r) ? +q.r : null);
     if (view === 'pair' && ok(q.a) && ok(q.b)) state.pair = { a: q.a, b: q.b };
     if (view === 'oneall' && ok(q.a)) state.one = { a: q.a };
     if (view === 'beta' && ok(q.base) && ok(q.a)) state.beta = { base: q.base, a: q.a };
@@ -296,6 +353,7 @@
     fillSelect($('betaAsset'), TICKERS.filter((t) => t !== state.beta.base), state.beta.a);
     document.querySelectorAll('#volChecks input').forEach((cb) => (cb.checked = state.vol.has(cb.value)));
     syncWindowUI();
+    syncRangeUI();
   }
 
   // ---------------------------------------------------------------- theme + wire

@@ -197,8 +197,13 @@ input[type=range]::-webkit-slider-thumb {
   background: var(--accent); border: 2px solid var(--page); cursor: pointer;
 }
 input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 50%; background: var(--accent); border: 2px solid var(--page); cursor: pointer; }
-.wval { font-size: 0.82rem; color: var(--secondary); min-width: 92px; text-align: right; }
+.wval { font-size: 0.82rem; color: var(--secondary); }
 .wval b { color: var(--accent); }
+.hint { font-size: 0.72rem; color: var(--muted); margin: -2px 0 2px; max-width: 360px; line-height: 1.45; }
+
+/* time-range bar below the chart */
+.range-bar { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; padding: 16px 0 2px; }
+.range-label { font-size: 0.68rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--muted); }
 
 .checks { display: flex; flex-wrap: wrap; gap: 8px 14px; padding-top: 4px; }
 .checks label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--secondary); cursor: pointer; }
