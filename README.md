@@ -8,9 +8,9 @@ Live site: <https://correlations.josusanmartin.com>
 
 ## The idea: ship prices once, compute in the browser
 
-The whole app runs off **one small file** — five years of daily closing prices
-(`public/data/prices.json`, ~230 KB). Every metric is derived client-side from
-those prices:
+The whole app runs off **one small file** — up to two decades of daily closing
+prices (`public/data/prices.json`, still well under 1 MB). Every metric is
+derived client-side from those prices:
 
 ```
 prices ──► daily returns ──► rolling correlation / beta / volatility / matrix
@@ -90,9 +90,11 @@ the frontend both read it; no code changes needed.
 
 ## Methodology
 
-Prices are adjusted closes aligned to a shared **business-day** calendar over the
-last five years, so crypto and equities are compared on the same trading days.
-Windows are measured in **trading days**. Correlation is the Pearson coefficient
+Prices are adjusted closes aligned to a shared **business-day** calendar going
+back up to 20 years (as far as each asset trades freely; newer assets carry
+leading nulls and each chart trims to where its data exists), so crypto and
+equities are compared on the same trading days. Windows are measured in
+**trading days**. Correlation is the Pearson coefficient
 of daily returns over the rolling window; beta is `cov(asset, base)/var(base)`;
 volatility is the sample standard deviation of daily returns, annualized by
 √252. These match a pandas reference implementation to ~1e-15.

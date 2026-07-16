@@ -189,7 +189,7 @@
     setHero(
       `Correlation · ${w}D`,
       latest == null ? '—' : fmtCorr(latest), latest >= 0 ? 'pos' : 'neg',
-      `${NAMES[a]} vs ${NAMES[b]}, rolling over 5 years`,
+      `${NAMES[a]} vs ${NAMES[b]} — rolling correlation`,
       n ? [{ k: 'Low', v: fmtCorr(lo) }, { k: 'High', v: fmtCorr(hi) }, { k: 'Mean', v: fmtCorr(s / n) }] : []
     );
   }

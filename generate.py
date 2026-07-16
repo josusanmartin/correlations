@@ -32,7 +32,11 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 CONFIG_DIR = os.path.join(ROOT, "public", "config")
 DATA_DIR = os.path.join(ROOT, "public", "data")
 
-YEARS_OF_HISTORY = 5
+# Fetch a deep history from Yahoo (free) so long rolling windows — the 3Y view
+# in particular — have room to breathe. Assets that started trading later
+# (crypto, recent IPOs) simply carry leading nulls until their first print; the
+# frontend trims each chart's x-axis to where data exists.
+YEARS_OF_HISTORY = 20
 SIG_FIGS = 6  # price precision kept in the JSON (returns stay accurate to ~1e-4)
 
 

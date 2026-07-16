@@ -70,6 +70,17 @@ const Charts = (() => {
     return [lo, hi];
   }
 
+  // First/last index at which any plotted series has a value (for x-axis trim).
+  function dataSpan(series, n) {
+    let first = -1, last = -1;
+    for (let i = 0; i < n; i++) {
+      let has = false;
+      for (const s of series) if (s.values[i] != null) { has = true; break; }
+      if (has) { if (first < 0) first = i; last = i; }
+    }
+    return first < 0 ? [0, n - 1] : [first, last];
+  }
+
   function formatMonth(dateStr) {
     const [y, m] = dateStr.split('-');
     return `${MONTHS[+m - 1]} '${y.slice(2)}`;
@@ -145,7 +156,13 @@ const Charts = (() => {
 
       // y-domain: fit to the data with headroom (or an explicit yDomain).
       const [ymin, ymax] = yDomainFor(series, this.data);
-      const xAt = (i) => p.left + (n === 1 ? p.w / 2 : (i / (n - 1)) * p.w);
+
+      // x-range: trim to where the plotted series actually have data, so a
+      // short-history asset (or a long window that only recently has values)
+      // fills the width instead of leaving the left side blank.
+      const [i0, i1] = dataSpan(series, n);
+      const span = Math.max(1, i1 - i0);
+      const xAt = (i) => p.left + (i1 === i0 ? p.w / 2 : ((i - i0) / span) * p.w);
       const yAt = (v) => p.top + p.h - ((v - ymin) / (ymax - ymin)) * p.h;
 
       // gridlines + y labels
@@ -178,11 +195,11 @@ const Charts = (() => {
         ctx.setLineDash([]);
       }
 
-      // x labels (~6)
+      // x labels (~6), sampled across the visible range
       ctx.fillStyle = muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-      const xTickCount = Math.min(6, n);
+      const xTickCount = Math.min(6, span + 1);
       for (let k = 0; k < xTickCount; k++) {
-        const i = Math.round((k / (xTickCount - 1)) * (n - 1));
+        const i = i0 + Math.round((k / Math.max(1, xTickCount - 1)) * span);
         ctx.fillText(formatMonth(dates[i]), xAt(i), p.top + p.h + 8);
       }
 
@@ -192,7 +209,7 @@ const Charts = (() => {
         ctx.strokeStyle = s.color;
         ctx.beginPath();
         let pen = false;
-        for (let i = 0; i < n; i++) {
+        for (let i = i0; i <= i1; i++) {
           const v = s.values[i];
           if (v == null) { pen = false; continue; }
           const x = xAt(i), y = yAt(v);
@@ -217,16 +234,16 @@ const Charts = (() => {
         }
       }
 
-      this._p = p; this._n = n; this._xAt = xAt;
+      this._p = p; this._i0 = i0; this._i1 = i1; this._span = span; this._xAt = xAt;
     }
 
     _move(e) {
       if (!this.data || !this._p) return;
       const rect = this.canvas.getBoundingClientRect();
       const cx = e.clientX - rect.left;
-      const p = this._p, n = this._n;
-      let i = Math.round(((cx - p.left) / p.w) * (n - 1));
-      i = Math.max(0, Math.min(n - 1, i));
+      const p = this._p;
+      let i = this._i0 + Math.round(((cx - p.left) / p.w) * this._span);
+      i = Math.max(this._i0, Math.min(this._i1, i));
       this.hover = i;
       this.render();
 
@@ -348,7 +365,7 @@ const Charts = (() => {
     destroy() { this._ro.disconnect(); }
   }
 
-  return { LineChart, Heatmap, makeDiverging, yDomainFor };
+  return { LineChart, Heatmap, makeDiverging, yDomainFor, dataSpan };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = Charts;
