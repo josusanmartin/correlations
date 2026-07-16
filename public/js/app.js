@@ -64,7 +64,9 @@
 
     initTheme();
     wire();
-    if (!applyHash()) render();
+    // setView (not render) so the view's show/hide logic runs — otherwise the
+    // matrix host stays hidden and the chart draws into a zero-size canvas.
+    if (!applyHash()) setView(state.view);
     window.addEventListener('hashchange', () => { if (!applyingHash) applyHash() && render(); });
   }
 

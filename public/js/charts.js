@@ -149,6 +149,7 @@ const Charts = (() => {
     render() {
       if (!this.data) return;
       const { ctx, w, h } = setupCanvas(this.canvas);
+      if (w < 2 || h < 2) return; // host hidden / not laid out yet; ResizeObserver will redraw
       const p = this._plotRect(w, h);
       const { dates, series, refLines = [] } = this.data;
       const n = dates.length;
@@ -295,6 +296,7 @@ const Charts = (() => {
     render() {
       if (!this.data) return;
       const { ctx, w, h } = setupCanvas(this.canvas);
+      if (w < 2 || h < 2) return; // host hidden / not laid out yet; ResizeObserver will redraw
       const { labels, matrix } = this.data;
       const nn = labels.length;
       const pad = { left: 78, top: 78, right: 14, bottom: 14 };
