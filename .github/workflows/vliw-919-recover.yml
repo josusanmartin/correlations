@@ -1,0 +1,61 @@
+name: vliw-919-recover
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Inspect exact readable 924 lowering
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -LsSf 'https://gist.githubusercontent.com/josusanmartin/98d1ba6e26ddd17078e4cff7880bef4d/raw/0bad3b3bc5c885177fb1ac37861b16be10a547ce/perf_takehome_readable.py' -o /tmp/perf924.py
+          curl -LsSf 'https://raw.githubusercontent.com/anthropics/original_performance_takehome/main/problem.py' -o /tmp/problem.py
+          cat >/tmp/inspect.py <<'PY'
+          import importlib.util,sys,collections,json
+          sys.path.insert(0,'/tmp')
+          spec=importlib.util.spec_from_file_location('p924','/tmp/perf924.py')
+          m=importlib.util.module_from_spec(spec);sys.modules['p924']=m;spec.loader.exec_module(m)
+          print('IDENTITY',getattr(m,'BUILD_ID',None),getattr(m,'EXPECTED_CYCLES',None),getattr(m,'EXPECTED_PROGRAM_LEN',None),getattr(m,'EXPECTED_SCRATCH',None))
+          for name in sorted(dir(m)):
+              if any(k in name.upper() for k in ('HOT','TABLE','SPEC','CHAIN','TEMPLATE','BASE')):
+                  value=getattr(m,name)
+                  try:n=len(value)
+                  except Exception:n=None
+                  print('GLOBAL',name,type(value).__name__,n)
+          hot=getattr(m,'HOT_PROGRAM')
+          temps=getattr(m,'PAIR_TABLE_TEMPLATES')
+          print('HOT_LEN',len(hot),'TEMPLATES',len(temps))
+          print('TEMPLATE_TYPE',type(temps[0]).__name__,'FIRST',repr(temps[0])[:1000])
+          print('TEMPLATE_LAST',repr(temps[-1])[:1000])
+          print('HOT_FLOW')
+          for pc,b in enumerate(hot):
+              d=dict(b)
+              fs=d.get('flow',())
+              if fs:
+                  for s in fs:
+                      if s[0] in ('jump_indirect','jump','add_imm','halt','pause'):
+                          print(pc,repr(s),repr(b)[:500])
+          print('TEMPLATE_FLOWS')
+          for i,t in enumerate(temps):
+              d=dict(t)
+              fs=d.get('flow',())
+              if fs:
+                  print(i,repr(fs),repr(t)[:600])
+          print('CANDIDATE_METADATA')
+          for name in sorted(dir(m)):
+              if name.startswith('_'):continue
+              v=getattr(m,name)
+              if isinstance(v,(tuple,list,dict)) and name not in ('HOT_PROGRAM','PAIR_TABLE_TEMPLATES'):
+                  try:
+                      r=repr(v)
+                      if len(r)<5000:print(name,r)
+                  except Exception:pass
+          kb=m.KernelBuilder();kb.build_kernel(10,2047,256,16)
+          print('BUILT',type(kb.instrs).__name__,len(kb.instrs),kb.scratch_ptr)
+          PY
+          python /tmp/inspect.py
