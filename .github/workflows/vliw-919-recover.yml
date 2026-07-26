@@ -1,0 +1,38 @@
+name: vliw-919-recover
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Recover public VLIW laboratory
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git clone https://github.com/josusanmartin/original_performance_takehome.git /tmp/vliw
+          cd /tmp/vliw
+          git fetch --all --prune
+          echo '=== BRANCHES ==='
+          git branch -a
+          echo '=== FILTERED TREES ==='
+          for ref in origin/main origin/sub924-lab origin/chatgpt/deletion-search-20260726; do
+            if git rev-parse --verify "$ref" >/dev/null 2>&1; then
+              echo "--- $ref"
+              git ls-tree -r --name-only "$ref" | grep -E '(\.pkl$|919|923|924|checkpoint|deletion|recover|profile|validation|\.github)' || true
+            fi
+          done
+          echo '=== RECENT DELETION COMMITS ==='
+          git log --oneline --decorate -30 origin/chatgpt/deletion-search-20260726 || true
+          echo '=== WORKFLOW FILES ==='
+          for ref in origin/main origin/sub924-lab origin/chatgpt/deletion-search-20260726; do
+            if git rev-parse --verify "$ref" >/dev/null 2>&1; then
+              for f in $(git ls-tree -r --name-only "$ref" .github | grep -E '\.(py|yml|yaml)$' || true); do
+                echo "===== $ref:$f ====="
+                git show "$ref:$f" || true
+              done
+            fi
+          done
